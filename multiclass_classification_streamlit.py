@@ -64,6 +64,7 @@ def main():
             st.text("Model Report:\n" + classification_report)
 
 
+@st.cache
 def twenty_newsgroup_to_csv():
     newsgroups_train = fetch_20newsgroups(subset='train', remove=('headers', 'footers', 'quotes'))
 
@@ -78,12 +79,14 @@ def twenty_newsgroup_to_csv():
     out.to_csv('20_newsgroup.csv')
 
 
+@st.cache
 def create_data_frame():
     twenty_newsgroup_to_csv()
     data_set = pd.read_csv('20_newsgroup.csv')
     return data_set
 
 
+@st.cache(allow_output_mutation=True)
 def preprocessing(data_set):
     count_vect = CountVectorizer(stop_words='english')
 
@@ -95,6 +98,8 @@ def preprocessing(data_set):
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, test_size=0.25)
     return X, y, X_train, X_test, y_train, y_test
 
+
+@st.cache(allow_output_mutation=True)
 def get_classifier(input_classifier):
     if input_classifier == "MultinomialNB":
         classifier = MultinomialNB()
@@ -108,6 +113,8 @@ def get_classifier(input_classifier):
         classifier = XGBClassifier()
     return classifier
 
+
+@st.cache(suppress_st_warning=True)
 def classify_data(X_train, X_test, y_train, y_test, input_classifier):
     classifier = get_classifier(input_classifier)
 
@@ -123,6 +130,7 @@ def classify_data(X_train, X_test, y_train, y_test, input_classifier):
     return accuracy_score(y_test, y_predict), classification_report(y_test, y_predict)
 
 
+@st.cache
 def classify_data_KNN(X_train, X_test, y_train, y_test, k_value):
     knc_classifier = KNeighborsClassifier(n_neighbors=k_value)
     knc_classifier.fit(X_train, y_train)
@@ -131,6 +139,8 @@ def classify_data_KNN(X_train, X_test, y_train, y_test, k_value):
 
     return accuracy_score(y_test, y_predict), classification_report(y_test, y_predict)
 
+
+@st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def classify_data_cv(X ,y, fold_value, input_classifier):
     classifier = get_classifier(input_classifier)
     scores = cross_val_score(classifier, X, y, cv=fold_value)
