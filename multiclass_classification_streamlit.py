@@ -3,12 +3,14 @@ import pandas as pd
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import cross_val_score
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.naive_bayes import ComplementNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
+from xgboost import XGBClassifier
 
 
 def main():
@@ -16,32 +18,50 @@ def main():
     #  Multiclass classification for 20-news-group data
     Showing results for ML classifiers. Choose a classifier on the sidebar.
     """)
-    data_set = create_data_frame()
 
-    if st.checkbox('Show data frame head'):
-        st.subheader("Showing data frame head")
-        st.write(data_set.head())
+    data_set = create_data_frame()
+    X, y, X_train, X_test, y_train, y_test = preprocessing(data_set)
 
     choose_model = st.sidebar.selectbox("Choose the ML Model",
-                                        ["NONE", "BernoulliNB", "ComplementNB", "MultinomialNB", "K-Nearest Neighbors"])
+                                        ["None", "MultinomialNB", "BernoulliNB", "ComplementNB", "K-Nearest Neighbors",
+                                         "XGBoost"])
 
-    X_train, X_test, y_train, y_test = preprocessing(data_set)
+    if st.checkbox("Show data frame head"):
+        st.write(data_set.head())
 
-    if choose_model == "MultinomialNB":
-        accuracy_score, classification_report = classify_data_MultinomialNB(X_train, X_test, y_train, y_test)
-    elif choose_model == "ComplementNB":
-        accuracy_score, classification_report = classify_data_ComplementNB(X_train, X_test, y_train, y_test)
-    elif choose_model == "BernoulliNB":
-        accuracy_score, classification_report = classify_data_BernoulliNB(X_train, X_test, y_train, y_test)
-    elif choose_model == "GaussianNB":
-        accuracy_score, classification_report = classify_data_GaussianNB(X_train, X_test, y_train, y_test)
+    cross_validate = st.sidebar.selectbox("Cross validate model?",
+                                        ["No", "Yes"])
+    if cross_validate == "Yes":
+        st.markdown('#')
+        fold_value_input = st.selectbox("Select number of folds",
+                                     ('5', '10'))
+
+    if choose_model == "None":
+        st.markdown('#')
+        st.text("No model chosen.")
+    elif cross_validate == "Yes":
+        mean, std_dev = classify_data_cv(X ,y, int(fold_value_input), choose_model)
     elif choose_model == "K-Nearest Neighbors":
-        k_value_input = st.selectbox("Number of Neighbors",
+        k_value_input = st.selectbox("Select number of neighbors",
                               ('1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','100'))
         accuracy_score, classification_report = classify_data_KNN(X_train, X_test, y_train, y_test, int(k_value_input))
+    else:
+        accuracy_score, classification_report = classify_data(X_train, X_test, y_train, y_test, choose_model)
 
-    st.write(accuracy_score)
-    st.write(classification_report)
+    if choose_model != "None":
+        if cross_validate == "Yes":
+            st.markdown('#')
+            st.write("Mean accuracy score:")
+            st.write(mean)
+            st.markdown('#')
+            st.write("Standard deviation of accuracy score:")
+            st.text(std_dev)
+        else:
+            st.markdown('#')
+            st.write("Accuracy score:")
+            st.write(accuracy_score)
+            st.markdown('#')
+            st.text("Model Report:\n" + classification_report)
 
 
 def twenty_newsgroup_to_csv():
@@ -68,46 +88,37 @@ def preprocessing(data_set):
     count_vect = CountVectorizer(stop_words='english')
 
     X = data_set.iloc[:, 1]
-    y = data_set.iloc[:, 2]
+    y = data_set.iloc[:, 3]
 
     X = count_vect.fit_transform(X.values.astype('U'))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, test_size=0.25)
-    return X_train, X_test, y_train, y_test
+    return X, y, X_train, X_test, y_train, y_test
 
+def get_classifier(input_classifier):
+    if input_classifier == "MultinomialNB":
+        classifier = MultinomialNB()
+    elif input_classifier == "ComplementNB":
+        classifier = ComplementNB()
+    elif input_classifier == "BernoulliNB":
+        classifier = BernoulliNB()
+    elif input_classifier == "GaussianNB":
+        classifier = GaussianNB()
+    elif input_classifier == "XGBoost":
+        classifier = XGBClassifier()
+    return classifier
 
-def classify_data_MultinomialNB(X_train, X_test, y_train, y_test):
-    mnb_classifier = MultinomialNB()
-    mnb_classifier.fit(X_train, y_train)
-    y_predict = mnb_classifier.predict(X_test)
-    mnb_classifier.score(X_test, y_test)
+def classify_data(X_train, X_test, y_train, y_test, input_classifier):
+    classifier = get_classifier(input_classifier)
 
-    return accuracy_score(y_test, y_predict), classification_report(y_test, y_predict)
-
-
-def classify_data_ComplementNB(X_train, X_test, y_train, y_test):
-    cnb_classifier = ComplementNB()
-    cnb_classifier.fit(X_train, y_train)
-    y_predict = cnb_classifier.predict(X_test)
-    cnb_classifier.score(X_test, y_test)
-
-    return accuracy_score(y_test, y_predict), classification_report(y_test, y_predict)
-
-
-def classify_data_BernoulliNB(X_train, X_test, y_train, y_test):
-    bnb_classifier = BernoulliNB()
-    bnb_classifier.fit(X_train, y_train)
-    y_predict = bnb_classifier.predict(X_test)
-    bnb_classifier.score(X_test, y_test)
-
-    return accuracy_score(y_test, y_predict), classification_report(y_test, y_predict)
-
-
-def classify_data_GaussianNB(X_train, X_test, y_train, y_test):
-    gnb_classifier = GaussianNB()
-    gnb_classifier.fit(X_train.toarray(), y_train)
-    y_predict = gnb_classifier.predict(X_test.toarray())
-    gnb_classifier.score(X_test.toarray(), y_test)
+    if input_classifier == "GaussianNB":
+        classifier.fit(X_train.toarray(), y_train)
+        y_predict = classifier.predict(X_test.toarray())
+        classifier.score(X_test.toarray(), y_test)
+    else:
+        classifier.fit(X_train, y_train)
+        y_predict = classifier.predict(X_test)
+        classifier.score(X_test, y_test)
 
     return accuracy_score(y_test, y_predict), classification_report(y_test, y_predict)
 
@@ -119,6 +130,11 @@ def classify_data_KNN(X_train, X_test, y_train, y_test, k_value):
     knc_classifier.score(X_test, y_test)
 
     return accuracy_score(y_test, y_predict), classification_report(y_test, y_predict)
+
+def classify_data_cv(X ,y, fold_value, input_classifier):
+    classifier = get_classifier(input_classifier)
+    scores = cross_val_score(classifier, X, y, cv=fold_value)
+    return scores.mean(), scores.std()
 
 
 if __name__ == "__main__":
