@@ -39,12 +39,18 @@ def main():
     if choose_model == "None":
         st.markdown('#')
         st.text("No model chosen.")
-    elif cross_validate == "Yes":
-        mean, std_dev = classify_data_cv(X ,y, int(fold_value_input), choose_model)
-    elif choose_model == "K-Nearest Neighbors":
+    elif choose_model == "K-Nearest Neighbors" and cross_validate == "No":
         k_value_input = st.selectbox("Select number of neighbors",
                               ('1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','100'))
         accuracy_score, classification_report = classify_data_KNN(X_train, X_test, y_train, y_test, int(k_value_input))
+    elif cross_validate == "Yes":
+        if choose_model == "K-Nearest Neighbors":
+            k_value_input = st.selectbox("Select number of neighbors",
+                                         ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14',
+                                          '15', '100'))
+            mean, std_dev = classify_data_cv_knn(X, y, int(fold_value_input), int(k_value_input), choose_model)
+        else:
+            mean, std_dev = classify_data_cv(X ,y, int(fold_value_input), choose_model)
     else:
         accuracy_score, classification_report = classify_data(X_train, X_test, y_train, y_test, choose_model)
 
@@ -144,6 +150,13 @@ def classify_data_KNN(X_train, X_test, y_train, y_test, k_value):
 def classify_data_cv(X ,y, fold_value, input_classifier):
     classifier = get_classifier(input_classifier)
     scores = cross_val_score(classifier, X, y, cv=fold_value)
+    return scores.mean(), scores.std()
+
+
+@st.cache(suppress_st_warning=True, allow_output_mutation=True)
+def classify_data_cv_knn(X ,y, fold_value, k_value, input_classifier):
+    knc_classifier = KNeighborsClassifier(n_neighbors=k_value)
+    scores = cross_val_score(knc_classifier, X, y, cv=fold_value)
     return scores.mean(), scores.std()
 
 
