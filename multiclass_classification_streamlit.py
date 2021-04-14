@@ -10,6 +10,7 @@ from sklearn.naive_bayes import ComplementNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import LinearSVC
 from xgboost import XGBClassifier
 
 
@@ -24,7 +25,7 @@ def main():
 
     choose_model = st.sidebar.selectbox("Choose the ML Model",
                                         ["None", "MultinomialNB", "BernoulliNB", "ComplementNB", "K-Nearest Neighbors",
-                                         "XGBoost"])
+                                         "XGBoost","LinearSVC"])
 
     if st.checkbox("Show data frame head"):
         st.write(data_set.head())
@@ -117,6 +118,8 @@ def get_classifier(input_classifier):
         classifier = GaussianNB()
     elif input_classifier == "XGBoost":
         classifier = XGBClassifier()
+    elif input_classifier == "LinearSVC":
+        classifier = LinearSVC()
     return classifier
 
 
@@ -125,6 +128,21 @@ def classify_data(X_train, X_test, y_train, y_test, input_classifier):
     classifier = get_classifier(input_classifier)
 
     if input_classifier == "GaussianNB":
+        classifier.fit(X_train.toarray(), y_train)
+        y_predict = classifier.predict(X_test.toarray())
+        classifier.score(X_test.toarray(), y_test)
+    else:
+        classifier.fit(X_train, y_train)
+        y_predict = classifier.predict(X_test)
+        classifier.score(X_test, y_test)
+
+    return accuracy_score(y_test, y_predict), classification_report(y_test, y_predict)
+
+@st.cache(suppress_st_warning=True)
+def classify_data(X_train, X_test, y_train, y_test, input_classifier):
+    classifier = get_classifier(input_classifier)
+
+    if input_classifier == "LinearSVC":
         classifier.fit(X_train.toarray(), y_train)
         y_predict = classifier.predict(X_test.toarray())
         classifier.score(X_test.toarray(), y_test)
