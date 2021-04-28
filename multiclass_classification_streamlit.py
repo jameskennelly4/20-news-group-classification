@@ -41,14 +41,11 @@ def main():
         st.markdown('#')
         st.text("No model chosen.")
     elif choose_model == "K-Nearest Neighbors" and cross_validate == "No":
-        k_value_input = st.selectbox("Select number of neighbors",
-                              ('1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','100'))
+        k_value_input = display_k_value_options()
         accuracy_score, classification_report = classify_data_KNN(X_train, X_test, y_train, y_test, int(k_value_input))
     elif cross_validate == "Yes":
         if choose_model == "K-Nearest Neighbors":
-            k_value_input = st.selectbox("Select number of neighbors",
-                                         ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14',
-                                          '15', '100'))
+            k_value_input = display_k_value_options()
             mean, std_dev = classify_data_cv_knn(X, y, int(fold_value_input), int(k_value_input), choose_model)
         else:
             mean, std_dev = classify_data_cv(X ,y, int(fold_value_input), choose_model)
@@ -69,6 +66,13 @@ def main():
             st.write(accuracy_score)
             st.markdown('#')
             st.text("Model Report:\n" + classification_report)
+
+
+def display_k_value_options():
+    k_value_input = st.selectbox("Select number of neighbors",
+                                 ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15',
+                                  '100'))
+    return k_value_input
 
 
 @st.cache
